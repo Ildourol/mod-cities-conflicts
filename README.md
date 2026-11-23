@@ -1,26 +1,43 @@
 # Cities & Conflicts (`mod-cities-conflicts`)
 
-Unified AzerothCore module combining **Urban Life Simulation** and **World PvP Conflicts**, accompanied by the built-in **`CitiesConflictsDashboard`** WotLK 3.3.5a client AddOn.
+![Cities & Conflicts Banner](assets/banner.png)
+
+A unified **AzerothCore** (WotLK 3.3.5a) module bringing cities and the open world to life through autonomous urban simulation, dynamic world PvP conflicts, capital gate duel arenas, and a bundled real-time dashboard client AddOn.
 
 ---
 
-## Architecture Overview
+## Overview
 
-1. **City Life Domain (`CityLifeMgr`)**:
-   - Manages urban bot quotas, dynamic day/night time scaling, civic district hubs (Stormwind, Orgrimmar, Ironforge, Undercity, Dalaran, Shattrath, Goldshire).
-   - Activity loops: Market Vendors, Plaza Social, Crowd Social, Crafting Work, Tavern Drinking, Inn Rest, Beggar Charity Trades, Human Behavior (inspect, weapon sheathing, vanity pets, sitting).
-   - TortoiseBots-inspired **WorkIdle Anti-Stall Policy** and **Weighted RPG Mixer Policy**.
+**Cities & Conflicts** seamlessly merges two essential playerbot ecosystems into a single cohesive runtime:
 
-2. **World Conflicts Domain (`PvPLifeMgr`)**:
-   - Dynamic world PvP hotspots, capital raids, open-world skirmishes, persistent duel zones (outside Stormwind Gates & Orgrimmar).
-   - Safe bot lease arbitration (`LifeBotReservation.h`) preventing combat bot vs citizen role conflicts.
-
-3. **Telemetry & Client AddOn (`LifeTelemetryBridge` & `CitiesConflictsDashboard`)**:
-   - Binary wire protocol (`CLIFE` & `PVP` prefixes) streaming real-time live bot census, zone occupancy, active skirmishes, and task details to the client UI.
-   - Client AddOn located under [`addon/CitiesConflictsDashboard/`](addon/CitiesConflictsDashboard/).
+1. **Living Cities**: Populates capitals, major towns, and social hubs with lively resident bots that explore districts, visit market vendors and class trainers, socialize in taverns, fish along waterways, and carry out realistic idle routines with water-depth avoidance.
+2. **World Conflicts**: Orchestrates persistent outdoor faction warfare across 35+ frontline hotspots, reactive capital raid defenses, and vibrant spectator-filled duel arenas outside capital gates with natural approach angles and proximity-based challenger selection.
+3. **Mutual Anti-Stealing Protection**: Shared thread-safe reservation registry ensuring citizen bots and combatants never collide or steal leases from one another.
+4. **Bundled Client AddOn**: Built-in `CitiesConflictsDashboard` AddOn providing players and GMs with real-time census radars, district occupancy maps, active duel tracking, and bot inspectors.
 
 ---
 
-## Configuration
+## Requirements
 
-All configuration directives are consolidated in [`conf/mod_cities_conflicts.conf.dist`](conf/mod_cities_conflicts.conf.dist). Copy to your server's configuration directory as `mod_cities_conflicts.conf`.
+- [AzerothCore WotLK (3.3.5a)](https://github.com/azerothcore/azerothcore-wotlk)
+- [mod-playerbots](https://github.com/mod-playerbots/mod-playerbots)
+
+---
+
+## Installation
+
+1. Clone or copy `mod-cities-conflicts` into your `azerothcore-wotlk/modules/` directory:
+   ```bash
+   cd azerothcore-wotlk/modules
+   git clone https://github.com/Ildourol/mod-cities-conflicts.git
+   ```
+2. Apply the database SQL schemas in `data/sql/manual/` and updates in `data/sql/world/updates/` to your `acore_world` database.
+3. Re-run CMake and compile AzerothCore.
+4. Copy `conf/mod_cities_conflicts.conf.dist` to `mod_cities_conflicts.conf` in your server config directory and customize as needed.
+5. *(Optional)* Copy `addon/CitiesConflictsDashboard` into your World of Warcraft `Interface/AddOns/` directory.
+
+---
+
+## License
+
+This project is licensed under the GNU General Public License v2.
