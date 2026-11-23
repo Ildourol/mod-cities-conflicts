@@ -1,0 +1,16 @@
+<Bindings>
+    <Binding name="CITIES_CONFLICTS_DASHBOARD_TOGGLE" header="CITIES_CONFLICTS_DASHBOARD_HEADER" default="CTRL-L">
+        if CitiesConflictsDashboard and CitiesConflictsDashboard.ToggleWindow then
+            CitiesConflictsDashboard:ToggleWindow()
+        elseif PlayerbotsLifeDashboard and PlayerbotsLifeDashboard.ToggleWindow then
+            PlayerbotsLifeDashboard:ToggleWindow()
+        end
+    </Binding>
+    <Binding name="PLAYERBOTS_LIFE_DASHBOARD_TOGGLE" header="PLAYERBOTS_LIFE_DASHBOARD_HEADER" hidden="true">
+        if CitiesConflictsDashboard and CitiesConflictsDashboard.ToggleWindow then
+            CitiesConflictsDashboard:ToggleWindow()
+        elseif PlayerbotsLifeDashboard and PlayerbotsLifeDashboard.ToggleWindow then
+            PlayerbotsLifeDashboard:ToggleWindow()
+        end
+    </Binding>
+</Bindings>

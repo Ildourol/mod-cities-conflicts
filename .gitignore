@@ -1,0 +1,14 @@
+# Build artifacts
+build/
+bin/
+*.obj
+*.lib
+*.exp
+*.exe
+*.pdb
+
+# IDE & OS
+.vs/
+.vscode/
+*.user
+Thumbs.db

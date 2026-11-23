@@ -1,0 +1,9 @@
+{
+  "name": "mod-cities-conflicts",
+  "displayName": "Cities & Conflicts",
+  "description": "Unified module combining urban Living Cities life simulation and World Conflicts dynamic PvP warfare with built-in CitiesConflictsDashboard client AddOn.",
+  "author": "iCore",
+  "license": "GPL-2.0-or-later",
+  "target_core": "mod-playerbots/azerothcore-wotlk Playerbot branch",
+  "target_module": "mod-playerbots master"
+}

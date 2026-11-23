@@ -1,0 +1,998 @@
+###################################################################################################
+# Cities & Conflicts Module (mod-cities-conflicts)
+# Combined Urban Life & World Conflicts Module with CitiesConflictsDashboard Integration
+# Copyright (C) 2026 iCore
+# SPDX-License-Identifier: GPL-2.0-or-later
+###################################################################################################
+
+[worldserver]
+
+
+# Enable or disable the module.
+CityLife.Enable = 1
+
+# Log detailed debug information regarding bot allocation and movements.
+CityLife.Debug = 0
+
+# Wait for random bots to connect before assigning city residents (in seconds).
+CityLife.StartupDelaySeconds = 90
+
+# Population and behavior management interval (in seconds).
+CityLife.TickSeconds = 10
+
+###################################################################################################
+# Population Allocation & Demand Profiles
+###################################################################################################
+
+# Population Budget Mode:
+# "percentage" calculates target based on a percentage of the online eligible playerbot pool.
+# "count" uses the fixed count specified below.
+CityLife.Population.BudgetMode = "percentage"
+
+# Fixed population target when BudgetMode is set to "count".
+# Tuned conservatively to 100 (10% of a 1,000 active bot server) to guarantee healthy open-world roaming.
+CityLife.Population.FixedCount = 100
+
+# Percentage of the online eligible pool to borrow when BudgetMode is set to "percentage".
+# Tuned conservatively to 10% (yielding ~100 bots on a 1,000-bot server) leaving 80%+ of bots in the world.
+CityLife.Population.BorrowPercent = 10
+
+# Global ceiling across all hubs combined.
+# Set to 0 for uncapped dynamic mode (budget scales purely with live world bots * BorrowPercent).
+# Tuned conservatively to 120 max total bots across all hubs on a 1,000-bot server.
+CityLife.Population.MaxTotal = 120
+
+# Demand Mode:
+# "fixed"   - Populates each hub to its full allocation (subject to time-of-day scaling).
+# "dynamic" - Only populates hubs that currently have real players in them.
+# "hybrid"  - Keeps a low baseline in unattended hubs, and bursts to max when a player enters.
+CityLife.Population.DemandMode = "hybrid"
+
+# Hub distribution profile:
+# "scaled" - Proportional scaling: distributes dynamic budget proportionally across all active hubs
+#            based on relative hub importance (avoids ghost towns in smaller capitals/outposts).
+# "legacy" - Sequential allocation: fills hubs in configured order until budget is exhausted.
+CityLife.Population.Distribution = "scaled"
+
+# Minimum population baseline percentage retained in unattended hubs under "hybrid" mode.
+# Set to 20% so unoccupied cities maintain a gentle ambient presence without wasting pool capacity.
+CityLife.Population.BaselinePercent = 20
+
+# Grace period (in seconds) before scaling down a hub after the last real player leaves.
+CityLife.Population.BurstGraceSeconds = 180
+
+# Real Player Presence Population Scale:
+# Multiplier applied to the hub's borrowed bot population when a real human player is present in the area.
+# For example, 1.0 = standard nominal allocation (1x), 2.0 = double the amount of citizen bots (2x).
+# Default: 1.0 (No scaling change; set higher e.g. 1.5, 2.0 to dynamically pack areas with bots when players visit)
+CityLife.Population.RealPlayerPresenceScale = 1.0
+
+# Maximum number of bot borrows or releases executed per tick to prevent CPU spikes.
+CityLife.Population.MaxChangesPerTick = 3
+
+###################################################################################################
+# Compatibility & Coexistence with mod-world-conflicts
+###################################################################################################
+
+# Master switch for cross-module coexistence with mod-world-conflicts.
+# Enables mutual anti-stealing reservation checks and system presence flags.
+# Default: 1 (Enabled)
+CityLife.Compatibility.PvPLife.EnableHarmony = 1
+
+# When enabled, City Life consults the shared PlayerbotsLife::ReservationRegistry
+# and never borrows or moves a bot reserved by PvP Life.
+# Default: 1 (Enabled)
+CityLife.Compatibility.PvPLife.RespectReservations = 1
+
+###################################################################################################
+# Bot Selection and Safety Settings
+###################################################################################################
+
+# Read random bot account prefix and login delay settings from mod-playerbots.
+CityLife.Bots.UsePlayerbotConfig = 1
+
+# "auto" uses the value of AiPlayerbot.RandomBotAccountPrefix.
+CityLife.Bots.AccountPrefix = "auto"
+
+# Optionally restrict the account ID range. If both values are 0, no restriction is applied.
+CityLife.Bots.AccountMin = 0
+CityLife.Bots.AccountMax = 0
+
+# Maximum number of online bot candidates evaluated per hub reconciliation.
+# Set to 0 to enable dynamic census scaling (50% of live bots, bounded 100-1500).
+# Tuned to 500 for optimal memory footprint and query performance.
+CityLife.Bots.QueryLimit = 500
+
+# Exclude bots that are currently in a player or bot group.
+CityLife.Bots.SkipGrouped = 1
+
+# Keep disabled in standard random bot environments. If enabled, bots may be excluded due to BotActiveAlone.
+CityLife.Bots.RespectPlayerbotActivity = 0
+
+# Return bots to their original locations when released in scripted activity mode.
+CityLife.Bots.ReturnWhenReleased = 1
+
+###################################################################################################
+# Time-of-Day Population Multipliers (Based on local system time of the worldserver)
+###################################################################################################
+
+CityLife.Time.Enable = 1
+
+# Morning 06:00~11:59, Day 12:00~17:59, Evening 18:00~23:59, Night 00:00~05:59.
+# 100 deploys the full configured population for the hub.
+CityLife.Time.MorningMultiplierPct = 60
+CityLife.Time.DayMultiplierPct = 80
+CityLife.Time.EveningMultiplierPct = 100
+CityLife.Time.NightMultiplierPct = 25
+
+###################################################################################################
+# City Behavior & Roaming
+###################################################################################################
+
+# Resident bots occasionally move between auction houses, banks, mailboxes, and public squares.
+CityLife.Behaviour.Relocate = 1
+CityLife.Behaviour.RelocateMinSeconds = 180
+CityLife.Behaviour.RelocateMaxSeconds = 480
+
+# Alternating District Visits:
+# When enabled, bots in major capitals (Stormwind, Orgrimmar, Ironforge, etc.) oscillate
+# between primary commercial squares (e.g. Trade District / Valley of Strength) and
+# outlying residential/crafting quarters.
+CityLife.AlternatingDistricts.Enable = 1
+
+# Leash radius (in yards). Bots displaced further are returned to their assigned location.
+CityLife.Behaviour.LeashRadius = 75
+
+CityLife.Behaviour.Emotes = 1
+CityLife.Behaviour.EmoteChancePct = 35
+CityLife.Behaviour.EmoteMinSeconds = 120
+CityLife.Behaviour.EmoteMaxSeconds = 360
+
+# Weight multiplier for auction houses and banks in designated hubs (100 = 1.0x base weight, balanced across all POIs).
+CityLife.Behaviour.ServiceSpotWeightMultiplierPct = 100
+
+# Percentage of bots initially assigned to service spots that will remain stationary.
+# Lowered to 20% to allow fluid circulation between mailboxes, vendors, trainers, taverns, and plazas.
+CityLife.Behaviour.StaticServiceChancePct = 20
+CityLife.Behaviour.StaticServiceHubs = "Stormwind,Orgrimmar"
+CityLife.Behaviour.StaticServiceCategories = "auction,bank"
+
+# Activity Selection Weights (Determines relative probability when selecting a citizen's next activity)
+# Weights can be adjusted to tune the civic composition of the city.
+CityLife.Weight.Mailbox = 10
+CityLife.Weight.Bank = 12
+CityLife.Weight.Auction = 12
+CityLife.Weight.Vendor = 8
+CityLife.Weight.Trainer = 8
+CityLife.Weight.Tavern = 15
+CityLife.Weight.Plaza = 12
+CityLife.Weight.Wander = 10
+CityLife.Weight.Shrine = 5
+CityLife.Weight.Patrol = 8
+
+# Use local Playerbots RPG for city residents. Admission requires a bot already in the hub.
+# The bot engine owns NPC selection, movement and its usual shop, repair and quest decisions.
+# Set to 0 to use the scripted points of interest and activities below.
+CityLife.Strategies.NativeRpg = 1
+
+# Non-combat strategy string used in scripted activity mode.
+CityLife.Strategies.NonCombat = "+stay,-follow,-passive,-grind,-rpg,-travel,-duel,-pvp,-chat,-emote"
+
+###################################################################################################
+# Activity Switches (Independent On/Off Controls)
+###################################################################################################
+
+CityLife.Activities.LeaveInn.Enable = 1
+CityLife.Activities.ReturnToInn.Enable = 1
+CityLife.Activities.Roaming.Enable = 1
+CityLife.Activities.WallWalking.Enable = 1
+CityLife.Activities.TavernSitting.Enable = 1
+CityLife.Activities.TavernDrinking.Enable = 1
+CityLife.Activities.RandomEmotes.Enable = 1
+CityLife.Activities.AuctionHouse.Enable = 1
+CityLife.Activities.Mailbox.Enable = 1
+CityLife.Activities.Trainer.Enable = 1
+CityLife.Activities.FoodVendor.Enable = 1
+CityLife.Activities.Fishing.Enable = 1
+CityLife.Activities.InnDancing.Enable = 1
+CityLife.Activities.PlazaSocial.Enable = 1
+CityLife.Activities.CrowdScenes.Enable = 1
+CityLife.Activities.MountedTravel.Enable = 1
+CityLife.Activities.AFK.Enable = 1
+
+###################################################################################################
+# Living Crowd Scenes (Capital Bank & Auction House Squares)
+###################################################################################################
+
+# Enable living-crowd scenes at Stormwind Trade District and Orgrimmar Valley of Strength.
+# Set to 0 by default for completely silent out-of-the-box operation; enable as desired.
+CityLife.Crowd.Enable = 1
+
+# Real-player proximity radius (in yards). Crowd logic wakes when a player enters this range.
+CityLife.Crowd.PlayerRadius = 100.0
+
+# Minimum cooldown (in seconds) between paired conversations for a crowd citizen.
+CityLife.Crowd.ChatCooldownSec = 90
+
+# Minimum and maximum duration (in seconds) a crowd citizen stays flagged <AFK>.
+CityLife.Crowd.AfkMinSec = 60
+CityLife.Crowd.AfkMaxSec = 180
+
+###################################################################################################
+# Movement, Mounting & Navmesh Safety
+###################################################################################################
+
+# Enable canal water avoidance (prevent bots from walking into Stormwind/Undercity canals).
+CityLife.Movement.WaterAvoidance.Enable = 1
+
+# Chance for bots to mount when traveling long outdoor legs (>30 yards).
+CityLife.Movement.MountBetweenPoiChance = 90
+
+# Small probability (in percentage, 0-100) that bots will walk instead of running when navigating between spots.
+# Set to a very small chance (e.g. 5%) to create natural, casual pedestrian pacing.
+CityLife.Movement.WalkingChancePct = 5
+
+# Enable sink forensics logging when a bot descends rapidly through floors.
+CityLife.Movement.SinkForensics = 1
+
+# Maximum consecutive path rejections before triggering safe anchor recovery.
+CityLife.Movement.MaxPathRefuseStreak = 3
+
+# Fishing Activity Duration & Rest Cooldown (in seconds)
+# Active fishing duration before resting at the dock:
+CityLife.Activities.Fishing.DurationMinSec = 60
+CityLife.Activities.Fishing.DurationMaxSec = 180
+# Rest/sitting cooldown between fishing sessions:
+CityLife.Activities.Fishing.RestMinSec = 30
+CityLife.Activities.Fishing.RestMaxSec = 90
+
+###################################################################################################
+# Chat, Economy & Interaction Safeguards
+###################################################################################################
+
+# Enable canned paired conversations between bots in crowd and plaza areas.
+# Default: 0 (Disabled - completely silent operation).
+CityLife.Chat.ScriptedConversations = 0
+
+# Enable friendly greetings directed at nearby real players.
+# Default: 0 (Disabled - completely silent operation).
+CityLife.Chat.Greetings = 0
+
+# Allow unrestricted random /say speech (disabled by default to prevent cascade).
+CityLife.Chat.Unrestricted = 0
+CityLife.Chat.RandomSayChance = 0
+CityLife.Chat.SayCooldownSec = 30
+
+# Enable module-managed economic interactions. Playerbots decides its own RPG purchases and repairs.
+CityLife.Interactions.Enable = 1
+CityLife.Interactions.PlayerTrading = 0
+CityLife.Interactions.BuyFood = 1
+
+# Shield achievements and criteria progress while bots are actively engaged in
+# synthetic roleplay activities (crowd scenes, tavern drinking, dancing).
+# When enabled (1), suppression applies only during synthetic actions and strictly
+# shields real human players and human-controlled SelfBots from suppression.
+# Default: 0 (Disabled - borrowed bots retain normal achievement progression)
+CityLife.Achievements.BlockAchievements = 0
+
+###################################################################################################
+# Hub Configurations
+###################################################################################################
+
+CityLife.Hub.Stormwind.Enable = 1
+CityLife.Hub.Stormwind.Population = 45
+CityLife.Hub.Stormwind.Min = 5
+
+CityLife.Hub.Orgrimmar.Enable = 1
+CityLife.Hub.Orgrimmar.Population = 45
+CityLife.Hub.Orgrimmar.Min = 5
+
+CityLife.Hub.Ironforge.Enable = 1
+CityLife.Hub.Ironforge.Population = 15
+CityLife.Hub.Ironforge.Min = 3
+
+CityLife.Hub.Undercity.Enable = 1
+CityLife.Hub.Undercity.Population = 15
+CityLife.Hub.Undercity.Min = 3
+
+CityLife.Hub.Darnassus.Enable = 1
+CityLife.Hub.Darnassus.Population = 10
+CityLife.Hub.Darnassus.Min = 2
+
+CityLife.Hub.ThunderBluff.Enable = 1
+CityLife.Hub.ThunderBluff.Population = 10
+CityLife.Hub.ThunderBluff.Min = 2
+
+CityLife.Hub.Exodar.Enable = 1
+CityLife.Hub.Exodar.Population = 6
+CityLife.Hub.Exodar.Min = 2
+
+CityLife.Hub.Silvermoon.Enable = 1
+CityLife.Hub.Silvermoon.Population = 12
+CityLife.Hub.Silvermoon.Min = 2
+
+# Outland & Northrend capitals (level 58-80 brackets)
+CityLife.Hub.Shattrath.Enable = 1
+CityLife.Hub.Shattrath.Population = 14
+CityLife.Hub.Shattrath.Min = 3
+
+CityLife.Hub.Dalaran.Enable = 1
+CityLife.Hub.Dalaran.Population = 18
+CityLife.Hub.Dalaran.Min = 3
+
+# Lowbie hub (level 1-20 bracket)
+CityLife.Hub.Goldshire.Enable = 1
+CityLife.Hub.Goldshire.Population = 10
+CityLife.Hub.Goldshire.Min = 2
+
+# Wintergrasp starting camps (disabled by default with 0 population so no bots are deployed to Wintergrasp)
+CityLife.Hub.WintergraspAlliance.Enable = 0
+CityLife.Hub.WintergraspAlliance.Population = 0
+CityLife.Hub.WintergraspAlliance.Min = 0
+CityLife.Hub.WintergraspAlliance.TimeScaling = 0
+CityLife.Hub.WintergraspAlliance.ResidenceSeconds = 10800
+
+CityLife.Hub.WintergraspHorde.Enable = 0
+CityLife.Hub.WintergraspHorde.Population = 0
+CityLife.Hub.WintergraspHorde.Min = 0
+CityLife.Hub.WintergraspHorde.TimeScaling = 0
+CityLife.Hub.WintergraspHorde.ResidenceSeconds = 10800
+
+
+###################################################################################################
+# WorkIdle Anti-Stall Policy (TortoiseBots Inspired)
+###################################################################################################
+
+# How long a workstation or activity hold may sit idle before releasing (in seconds).
+# Prevents bots from freezing indefinitely when a target or workstation is unavailable.
+CityLife.WorkIdlePolicy.ReleaseSec = 30
+
+###################################################################################################
+# Weighted RPG Leisure Mixer Policy (TortoiseBots Inspired)
+###################################################################################################
+
+# Enable weighted leisure activity selection when choosing the next activity.
+CityLife.RpgMixer.Enable = 1
+
+CityLife.RpgMixer.SocialWeight = 35
+CityLife.RpgMixer.TavernWeight = 25
+CityLife.RpgMixer.CommerceWeight = 20
+CityLife.RpgMixer.CraftingWeight = 10
+CityLife.RpgMixer.PatrolWeight = 10
+
+###################################################################################################
+# Beggar Trade & Charity Strategy
+###################################################################################################
+
+# Enable beggar charity interactions.
+CityLife.BeggarTrade.Enable = 1
+CityLife.BeggarTrade.MinSeconds = 180
+CityLife.BeggarTrade.MaxSeconds = 420
+CityLife.BeggarTrade.ChancePct = 25
+CityLife.BeggarTrade.Range = 8.0
+CityLife.BeggarTrade.DurationSeconds = 15
+CityLife.BeggarTrade.PlayerCooldownSeconds = 600
+
+###################################################################################################
+# Human Behavior Immersion Strategy
+###################################################################################################
+
+# Enable human behavior simulation (gear inspect, weapon sheathing, companion vanity pets, ambient sitting).
+CityLife.HumanBehavior.Enable = 1
+
+CityLife.HumanBehavior.Inspect.Enable = 1
+CityLife.HumanBehavior.Inspect.Chance = 35
+CityLife.HumanBehavior.Inspect.IntervalMinSeconds = 60
+CityLife.HumanBehavior.Inspect.IntervalMaxSeconds = 180
+
+CityLife.HumanBehavior.WeaponSheath.Enable = 1
+CityLife.HumanBehavior.WeaponSheath.Chance = 25
+CityLife.HumanBehavior.WeaponSheath.IntervalMinSeconds = 120
+CityLife.HumanBehavior.WeaponSheath.IntervalMaxSeconds = 300
+
+CityLife.HumanBehavior.Sit.Enable = 1
+CityLife.HumanBehavior.Sit.Chance = 20
+CityLife.HumanBehavior.Sit.IntervalMinSeconds = 120
+CityLife.HumanBehavior.Sit.IntervalMaxSeconds = 360
+CityLife.HumanBehavior.Sit.DurationMinSeconds = 8
+CityLife.HumanBehavior.Sit.DurationMaxSeconds = 20
+
+CityLife.HumanBehavior.Companion.Enable = 1
+CityLife.HumanBehavior.Companion.Chance = 15
+CityLife.HumanBehavior.Companion.IntervalMinSeconds = 180
+CityLife.HumanBehavior.Companion.IntervalMaxSeconds = 600
+CityLife.HumanBehavior.Companion.DurationMinSeconds = 60
+CityLife.HumanBehavior.Companion.DurationMaxSeconds = 180
+
+CityLife.HumanBehavior.CheckIntervalSeconds = 10
+CityLife.HumanBehavior.MaxBotsPerCheck = 32
+CityLife.HumanBehavior.ObserverRange = 60.0
+CityLife.HumanBehavior.InspectRange = 20.0
+CityLife.HumanBehavior.IdleSeconds = 15
+
+###################################################################################################
+# Bidirectional Social & Emote Reaction Engine
+###################################################################################################
+
+# Enable text-emote bidirectional reactions (/wave, /bow, /dance, /cheer, /salute, etc.)
+CityLife.SocialReaction.Enable = 1
+CityLife.SocialReaction.Reactions.Enable = 1
+CityLife.SocialReaction.Chance = 80
+CityLife.SocialReaction.CooldownSeconds = 15
+CityLife.SocialReaction.Range = 25.0
+
+
+
+#
+#   PvPLife.Enable
+#       Description: Master switch to enable or disable the PvP Life module.
+#       Default:     1 (Enabled)
+#
+PvPLife.Enable = 1
+
+#
+#   PvPLife.Debug
+#       Description: Output detailed server debug logs.
+#       Default:     0 (Disabled)
+#
+PvPLife.Debug = 0
+
+#
+#   PvPLife.Announce
+#       Description: Broadcast system announcements to the entire server when activities start or end.
+#                    Recommended disabled for a natural player-like atmosphere.
+#       Default:     0 (Disabled)
+#
+PvPLife.Announce = 0
+
+#
+#   PvPLife.StartupDelaySeconds
+#       Description: Delay in seconds after worldserver startup before the module begins activities.
+#       Default:     90
+#
+PvPLife.StartupDelaySeconds = 90
+
+#
+#   PvPLife.TickSeconds
+#       Description: Activity management tick interval in seconds.
+#       Default:     20
+#
+PvPLife.TickSeconds = 20
+
+#
+#   PvPLife.Events.MaxActive
+#       Description: Overall ceiling for active concurrent PvP events across all categories.
+#                    Tuned to 4 for conservative world bot retention.
+#       Default:     4
+#
+PvPLife.Events.MaxActive = 4
+
+###################################################################################################
+# Bot Selection and Candidate Filtering
+###################################################################################################
+
+#
+#   PvPLife.Bots.RequireBotEligibility
+#       Description: Mandatory safety filter ensuring only Playerbots are ever selected.
+#                    If disabled, the module refuses to start.
+#       Default:     1 (Enabled)
+#
+PvPLife.Bots.RequireBotEligibility = 1
+
+#
+#   PvPLife.Bots.UsePlayerbotConfig
+#       Description: Import account prefix and login delay settings from Playerbots configuration
+#                    (checks modern Playerbots.* keys first with fallback to legacy AiPlayerbot.*).
+#       Default:     1 (Enabled)
+#
+PvPLife.Bots.UsePlayerbotConfig = 1
+
+#
+#   PvPLife.Bots.AccountPrefix
+#       Description: Account prefix for identifying random bots. "auto" imports from mod-playerbots.
+#       Default:     "auto"
+#
+PvPLife.Bots.AccountPrefix = "auto"
+
+#
+#   PvPLife.Bots.AccountMin / PvPLife.Bots.AccountMax
+#       Description: Restrict candidate bot accounts by numeric ID range. 0 = unrestricted.
+#       Default:     0, 0
+#
+PvPLife.Bots.AccountMin = 0
+PvPLife.Bots.AccountMax = 0
+
+#
+#   PvPLife.Bots.AccountFilterMode
+#       Description: Matching mode when both account range and prefix are specified.
+#                    "legacy_any" = matches range OR prefix.
+#                    "all"        = must match BOTH range and prefix.
+#       Default:     "legacy_any"
+#
+PvPLife.Bots.AccountFilterMode = "legacy_any"
+
+#
+#   PvPLife.Bots.QueryLimit
+#       Description: Maximum number of character candidates queried during candidate evaluation.
+#                    Set to 0 for dynamic automatic scaling based on live online bot counts (clamped 100-1500).
+#                    Fixed values are clamped between 50 and 5000.
+#       Default:     500
+#
+PvPLife.Bots.QueryLimit = 500
+
+#
+#   PvPLife.Bots.MinOnlineRequired
+#       Description: Minimum ready population required across both sides to start an activity.
+#                    Set to 2 to allow 1v1 duels and low-scale roaming skirmishes.
+#       Default:     2
+#
+PvPLife.Bots.MinOnlineRequired = 2
+
+#
+#   PvPLife.Bots.GlobalMinLevel
+#       Description: Lowest level allowed for world skirmishes. Prevents lowbies from being dragged to war.
+#       Default:     20
+#
+PvPLife.Bots.GlobalMinLevel = 20
+
+#
+#   PvPLife.Bots.SkipGrouped
+#       Description: Do not borrow bots participating in party, raid, or dungeon groups with real players.
+#       Default:     1 (Enabled)
+#
+PvPLife.Bots.SkipGrouped = 1
+
+#
+#   PvPLife.Bots.RespectPlayerbotActivity
+#       Description: Respect Playerbots internal activity filters.
+#       Default:     0 (Disabled)
+#
+PvPLife.Bots.RespectPlayerbotActivity = 0
+
+#
+#   PvPLife.Bots.AllowPartialTeams
+#       Description: Start activities with fewer bots than target if at least MinimumPerSide are ready.
+#       Default:     1 (Enabled)
+#
+PvPLife.Bots.AllowPartialTeams = 1
+
+#
+#   PvPLife.Bots.MinimumPerSide
+#       Description: Minimum bots required per side for partial teams.
+#       Default:     1
+#
+PvPLife.Bots.MinimumPerSide = 1
+
+#
+#   PvPLife.Bots.MaxPerSide
+#       Description: Maximum ceiling of bots assigned per faction per event.
+#       Default:     100
+#
+PvPLife.Bots.MaxPerSide = 100
+
+#
+#   PvPLife.Bots.ReturnAfterActivity
+#       Description: Return non-duel event participants to their original locations.
+#       Default:     1 (Enabled)
+#
+PvPLife.Bots.ReturnAfterActivity = 1
+
+###################################################################################################
+# Movement and Engagement (non-duel events)
+###################################################################################################
+
+#
+#   PvPLife.Movement.TeleportOnArrival
+#       Description: Teleport bots directly to the staging rally point upon arrival.
+#       Default:     1 (Enabled)
+#
+PvPLife.Movement.TeleportOnArrival = 1
+
+#
+#   PvPLife.Movement.UseMovePoint
+#       Description: Advance bots toward target combat point using MotionMaster MovePoint.
+#       Default:     1 (Enabled)
+#
+PvPLife.Movement.UseMovePoint = 1
+
+#
+#   PvPLife.Movement.HardTeleportToTarget
+#       Description: Hard teleport attackers directly to target point instead of walking.
+#       Default:     0 (Disabled)
+#
+PvPLife.Movement.HardTeleportToTarget = 0
+
+#
+#   PvPLife.Movement.PositionJitter
+#       Description: Random offset range (in yards) added to positions to prevent stacking.
+#       Default:     10
+#
+PvPLife.Movement.PositionJitter = 10
+
+#
+#   PvPLife.Movement.ArrivalStaggerMinSeconds / ArrivalStaggerMaxSeconds
+#       Description: Delay range in seconds for staggered bot arrivals.
+#       Default:     2, 12
+#
+PvPLife.Movement.ArrivalStaggerMinSeconds = 2
+PvPLife.Movement.ArrivalStaggerMaxSeconds = 12
+
+#
+#   PvPLife.Movement.MoveAfterArrivalMinSeconds / MoveAfterArrivalMaxSeconds
+#       Description: Delay range in seconds before advancing toward combat target.
+#       Default:     6, 20
+#
+PvPLife.Movement.MoveAfterArrivalMinSeconds = 6
+PvPLife.Movement.MoveAfterArrivalMaxSeconds = 20
+
+#
+#   PvPLife.Strategies.Enable
+#       Description: Enable dynamic application of native Playerbots PvP combat strategies.
+#       Default:     1 (Enabled)
+#
+PvPLife.Strategies.Enable = 1
+
+#
+#   PvPLife.Combat.ForcePvpFlag
+#       Description: Force PvP flag on participating bots during events.
+#       Default:     1 (Enabled)
+#
+PvPLife.Combat.ForcePvpFlag = 1
+
+#
+#   PvPLife.Combat.ForceAttackOnEngage
+#       Description: Automatically initiate attack against opposing bots upon reaching combat area.
+#       Default:     1 (Enabled)
+#
+PvPLife.Combat.ForceAttackOnEngage = 1
+
+#
+#   PvPLife.Combat.EngageAfterMoveSeconds
+#       Description: Seconds after advance movement before initiating attack.
+#       Default:     4
+#
+PvPLife.Combat.EngageAfterMoveSeconds = 4
+
+#
+#   PvPLife.Combat.EngageRetrySeconds
+#       Description: Retry interval in seconds if target engagement fails initially.
+#       Default:     5
+#
+PvPLife.Combat.EngageRetrySeconds = 5
+
+#
+#   PvPLife.Combat.EngageMaxRetries
+#       Description: Maximum engagement retry attempts before giving up.
+#       Default:     12
+#
+PvPLife.Combat.EngageMaxRetries = 12
+
+#
+#   PvPLife.Strategies.Combat / NonCombat / DuelNonCombat
+#       Description: Strategy expressions assigned to bots during combat, roaming, and duels.
+#
+PvPLife.Strategies.Combat = "+pvp,+boost,+dps debuff,-passive,-stay,-chat,-emote,-rpg,-travel"
+PvPLife.Strategies.NonCombat = "+pvp,+boost,-passive,-stay,-chat,-emote,-rpg,-travel"
+PvPLife.Strategies.DuelNonCombat = "+boost,-chat,-emote"
+
+###################################################################################################
+# Persistent World PvP
+###################################################################################################
+
+#
+#   PvPLife.World.AlwaysActive
+#       Description: Ensure outdoor PvP is actively running in at least one zone whenever possible.
+#       Default:     1 (Enabled)
+#
+PvPLife.World.AlwaysActive = 1
+
+#
+#   PvPLife.World.MinActiveHotspots / MaxActiveHotspots
+#       Description: Number of normal outdoor PvP hotspots to keep active concurrently.
+#       Default:     1, 3
+#
+PvPLife.World.MinActiveHotspots = 1
+PvPLife.World.MaxActiveHotspots = 3
+
+#
+#   PvPLife.World.RandomStartChance
+#       Description: Chance (percentage) per management tick to start an additional activity.
+#       Default:     35
+#
+PvPLife.World.RandomStartChance = 35
+
+###################################################################################################
+# Duel Zones
+###################################################################################################
+
+#
+#   PvPLife.Duel.Enable
+#       Description: Enable persistent capital gate and wilderness duel zones.
+#       Default:     1 (Enabled)
+#
+PvPLife.Duel.Enable = 1
+
+#
+#   PvPLife.Duel.AlwaysActive
+#       Description: Keep bots persistently stationed in active duel zones.
+#       Default:     1 (Enabled)
+#
+PvPLife.Duel.AlwaysActive = 1
+
+#
+#   PvPLife.Duel.SpellId
+#       Description: Classic duel challenge spell ID (7266).
+#       Default:     7266
+#
+PvPLife.Duel.SpellId = 7266
+
+#
+#   PvPLife.Duel.PairLimit
+#       Description: Maximum number of bot-vs-bot duel pairs scheduled concurrently.
+#       Default:     12
+#
+PvPLife.Duel.PairLimit = 12
+PvPLife.Duel.PairDelayMinSeconds = 5
+PvPLife.Duel.PairDelayMaxSeconds = 18
+
+#
+#   PvPLife.Duel.LeashRadius
+#       Description: Radius around the rally anchor for staged duels. The candidate search
+#                    considers online bots on the same map within twice this radius.
+#       Default:     40
+#
+PvPLife.Duel.LeashRadius = 40
+PvPLife.Duel.GuardIntervalMs = 1000
+
+#
+#   PvPLife.Duel.RelocateCooldownSeconds
+#       Description: Minimum interval between attempts to walk to the reserved staging point.
+#       Default:     20
+#
+PvPLife.Duel.RelocateCooldownSeconds = 20
+
+#
+#   PvPLife.Duel.ChallengeRealPlayers
+#       Description: Allow invitations to real players within 4 yards and line of sight.
+#       Default:     1 (Enabled)
+#
+PvPLife.Duel.ChallengeRealPlayers = 1
+PvPLife.Duel.PlayerChallengeChance = 25
+PvPLife.Duel.PlayerScanRadius = 4
+PvPLife.Duel.MaxLevelDifference = 5
+PvPLife.Duel.PlayerChallengeCooldownSeconds = 900
+PvPLife.Duel.BotChallengeCooldownSeconds = 180
+PvPLife.Duel.BotVsBotCooldownSeconds = 45
+PvPLife.Duel.BotVsBotMaxLevelDifference = 5
+
+###################################################################################################
+# For the Horde / For the Alliance Campaigns
+###################################################################################################
+
+PvPLife.ForTheHorde.Enable = 1
+PvPLife.ForTheAlliance.Enable = 1
+PvPLife.FactionCampaign.ChancePerTick = 12
+PvPLife.FactionCampaign.GlobalCooldownSeconds = 3600
+
+###################################################################################################
+# Natural Bot Chat
+###################################################################################################
+
+PvPLife.BotChat.Enable = 0
+PvPLife.BotChat.YellChance = 0
+PvPLife.BotChat.WorldChance = 0
+
+###################################################################################################
+# Reactive Raid Defense
+###################################################################################################
+
+#
+#   PvPLife.ReactiveRaidResponse.Enable
+#       Description: Deploy reactive bot defenders when a real-player-led outdoor raid of the opposite
+#                    faction is detected.
+#       Default:     1 (Enabled)
+#
+PvPLife.ReactiveRaidResponse.Enable = 1
+PvPLife.ReactiveRaidResponse.AllianceEnable = 1
+PvPLife.ReactiveRaidResponse.HordeEnable = 1
+
+#
+#   PvPLife.ReactiveRaidResponse.MinGroupSize
+#       Description: Minimum number of raid group members to trigger a reactive response.
+#       Default:     20
+#
+PvPLife.ReactiveRaidResponse.MinGroupSize = 20
+
+#
+#   PvPLife.ReactiveRaidResponse.MaxResponders
+#       Description: Maximum number of bot defenders recruited for a reactive response.
+#                    Tuned to 25 so defenders mount a massive counter-strike without exhausting high-level bots.
+#       Default:     25
+#
+PvPLife.ReactiveRaidResponse.MaxResponders = 25
+
+#
+#   PvPLife.ReactiveRaidResponse.LevelMode
+#       Description: Level matching mode for defenders.
+#                    "raid"  = dynamically matches invading group's level profile.
+#                    "fixed" = recruits defenders at PvPLife.ReactiveRaidResponse.FixedLevel.
+#       Default:     "raid"
+#
+PvPLife.ReactiveRaidResponse.LevelMode = "raid"
+PvPLife.ReactiveRaidResponse.FixedLevel = 60
+PvPLife.ReactiveRaidResponse.MaxLevelDifference = 5
+
+#
+#   PvPLife.ReactiveRaidResponse.LoginOfflineBots
+#       Description: Optionally wake existing offline random bots if online capacity is insufficient.
+#       Default:     0 (Disabled)
+#
+PvPLife.ReactiveRaidResponse.LoginOfflineBots = 0
+PvPLife.ReactiveRaidResponse.LoginDelaySeconds = 20
+PvPLife.ReactiveRaidResponse.LoginTimeoutSeconds = 60
+PvPLife.ReactiveRaidResponse.MaxConcurrentLogins = 4
+
+PvPLife.ReactiveRaidResponse.CooldownSeconds = 1800
+PvPLife.ReactiveRaidResponse.DurationMinutes = 20
+
+# Formation staging geometry
+PvPLife.ReactiveRaidResponse.RallyDistance = 120.0
+PvPLife.ReactiveRaidResponse.LaneSpacing = 4.0
+PvPLife.ReactiveRaidResponse.FormationColumns = 9
+PvPLife.ReactiveRaidResponse.AdvanceDistance = 25.0
+
+###################################################################################################
+# Conservative Balanced Population Budget
+###################################################################################################
+
+#
+#   PvPLife.Population.Enable
+#       Description: Enable shared borrowing budget calculations.
+#       Default:     1 (Enabled)
+#
+PvPLife.Population.Enable = 1
+
+#
+#   PvPLife.Population.BudgetMode
+#       Description: Budget calculation mode: "percentage" or "fixed".
+#       Default:     "percentage"
+#
+PvPLife.Population.BudgetMode = "percentage"
+PvPLife.Population.FixedCount = 100
+PvPLife.Population.BorrowPercent = 10
+
+# Global ceiling across all PvP activities combined.
+# Set to 0 for uncapped dynamic mode (budget scales purely with live world bots * BorrowPercent).
+# Tuned conservatively to 120 max total bots across all activities on a 1,000-bot server.
+PvPLife.Population.MaxTotal = 120
+
+PvPLife.Population.DemandMode = "hybrid"
+PvPLife.Population.BaselinePercent = 20
+PvPLife.Population.BurstGraceSeconds = 180
+PvPLife.Population.MaxChangesPerTick = 3
+
+# Proportional Zone & Skirmish Scaling:
+# When enabled (1), zone min/max bot populations dynamically scale up or down based on
+# live active world bots relative to 1,000-bot baseline (2v2 skirmishes at low population,
+# expanding into full-scale 10v10+ battles during high server population).
+# Default: 1 (Enabled)
+PvPLife.Population.ProportionalZoneScaling = 1
+
+###################################################################################################
+# Cross-Module Harmony & Coexistence with mod-living-cities
+###################################################################################################
+
+#
+#   PvPLife.Compatibility.CityLife.EnableHarmony
+#       Description: Master switch for cross-module harmony with mod-living-cities.
+#                    Enables mutual anti-stealing reservation checks and system presence flags.
+#       Default:     1 (Enabled)
+#
+PvPLife.Compatibility.CityLife.EnableHarmony = 1
+
+#
+#   PvPLife.Compatibility.CityLife.RespectReservations
+#       Description: When enabled, PvP Life consults the shared PlayerbotsLife::ReservationRegistry
+#                    and never borrows, moves, or commands a bot reserved by City Life.
+#       Default:     1 (Enabled)
+#
+PvPLife.Compatibility.CityLife.RespectReservations = 1
+
+#
+#   PvPLife.Compatibility.CityLife.ExcludeCityLifeAccounts
+#       Description: Excludes bot accounts configured for City Life from PvP Life's optional
+#                    offline bot login queries.
+#       Default:     1 (Enabled)
+#
+PvPLife.Compatibility.CityLife.ExcludeCityLifeAccounts = 1
+
+#
+#   PvPLife.Compatibility.CityLife.IndependentHookProcessing
+#       Description: Ensures PvP Life player and world script hooks only inspect and modify
+#                    active PvP Life participants, allowing City Life hooks to execute freely.
+#       Default:     1 (Enabled)
+#
+PvPLife.Compatibility.CityLife.IndependentHookProcessing = 1
+
+###################################################################################################
+# Asynchronous Audit Logger
+###################################################################################################
+
+#
+#   PvPLife.Audit.Enable
+#       Description: Enable bounded asynchronous audit logging to file on a dedicated thread.
+#       Default:     1 (Enabled)
+#
+PvPLife.Audit.Enable = 1
+
+#
+#   PvPLife.Audit.FilePath
+#       Description: File path for audit log records.
+#       Default:     "Logs/pvplife_audit.log"
+#
+PvPLife.Audit.FilePath = "Logs/pvplife_audit.log"
+
+###################################################################################################
+# Per-Zone Populations
+###################################################################################################
+
+# Duel arenas (Stormwind & Orgrimmar gates, balanced alongside City Life)
+PvPLife.Zone.StormwindDuel.Enable = 1
+PvPLife.Zone.StormwindDuel.MinPopulation = 4
+PvPLife.Zone.StormwindDuel.MaxPopulation = 8
+PvPLife.Zone.OrgrimmarDuel.Enable = 1
+PvPLife.Zone.OrgrimmarDuel.MinPopulation = 4
+PvPLife.Zone.OrgrimmarDuel.MaxPopulation = 8
+
+# Stranglethorn Vale skirmishes (level 30-45 bracket)
+PvPLife.Zone.STV_Nesingwary.Enable = 1
+PvPLife.Zone.STV_Nesingwary.MinPopulation = 4
+PvPLife.Zone.STV_Nesingwary.MaxPopulation = 10
+PvPLife.Zone.STV_Gurubashi.Enable = 1
+PvPLife.Zone.STV_Gurubashi.MinPopulation = 4
+PvPLife.Zone.STV_Gurubashi.MaxPopulation = 10
+
+# Tanaris desert skirmish (level 40-52 bracket)
+PvPLife.Zone.Tanaris_Gadgetzan.Enable = 1
+PvPLife.Zone.Tanaris_Gadgetzan.MinPopulation = 4
+PvPLife.Zone.Tanaris_Gadgetzan.MaxPopulation = 10
+
+# Dark Portal battlegrounds (level 55-65 bracket)
+PvPLife.Zone.DarkPortal_Azeroth.Enable = 1
+PvPLife.Zone.DarkPortal_Azeroth.MinPopulation = 6
+PvPLife.Zone.DarkPortal_Azeroth.MaxPopulation = 12
+PvPLife.Zone.DarkPortal_Outland.Enable = 1
+PvPLife.Zone.DarkPortal_Outland.MinPopulation = 6
+PvPLife.Zone.DarkPortal_Outland.MaxPopulation = 12
+
+# Outland & Northrend hotspots (level 65-80 bracket)
+PvPLife.Zone.Shattrath_Outskirts.Enable = 1
+PvPLife.Zone.Shattrath_Outskirts.MinPopulation = 4
+PvPLife.Zone.Shattrath_Outskirts.MaxPopulation = 10
+PvPLife.Zone.K3_StormPeaks.Enable = 1
+PvPLife.Zone.K3_StormPeaks.MinPopulation = 4
+PvPLife.Zone.K3_StormPeaks.MaxPopulation = 10
+PvPLife.Zone.Wintergrasp.Enable = 1
+PvPLife.Zone.Wintergrasp.MinPopulation = 6
+PvPLife.Zone.Wintergrasp.MaxPopulation = 12
+
+# Lowbie starter perimeter skirmishes (level 5-15 bracket)
+PvPLife.Zone.Goldshire_Roaming.Enable = 1
+PvPLife.Zone.Goldshire_Roaming.MinPopulation = 3
+PvPLife.Zone.Goldshire_Roaming.MaxPopulation = 6
+PvPLife.Zone.Durotar_Roaming.Enable = 1
+PvPLife.Zone.Durotar_Roaming.MinPopulation = 3
+PvPLife.Zone.Durotar_Roaming.MaxPopulation = 6
+
+PvPLife.Zone.Orgrimmar_Zeppelin.Enable = 0
+PvPLife.Zone.Orgrimmar_Zeppelin.MinPopulation = 3
+PvPLife.Zone.Orgrimmar_Zeppelin.MaxPopulation = 8
+
+# Capital campaign assaults (level 60-80 bracket)
+PvPLife.Zone.ForTheHorde_Stormwind.Enable = 1
+PvPLife.Zone.ForTheHorde_Stormwind.MinPopulation = 6
+PvPLife.Zone.ForTheHorde_Stormwind.MaxPopulation = 14
+PvPLife.Zone.ForTheAlliance_Orgrimmar.Enable = 1
+PvPLife.Zone.ForTheAlliance_Orgrimmar.MinPopulation = 6
+PvPLife.Zone.ForTheAlliance_Orgrimmar.MaxPopulation = 14
+
